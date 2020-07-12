@@ -1,3 +1,12 @@
+# Find out the insights that are relevant to the Warehouse & Delivery department based on keywords
+# This requires an inner join of tables ‘department_keywords’ and ‘insights’
+# The query returns 3 insights to the Warehouse & Delivery manager to read
+SELECT DP.department, DP.keywords, I.insight_id, I.insight_title, I.insights_summary
+FROM department_keywords DP INNER JOIN insights I
+ON DP.keywords = I.keyword
+WHERE DP.department = 'Warehouse & Delivery';
+
+
 # Find out he ethnicity distribution of my colleagues and where they operate.
 # To do so, the view 'vw_ethnicity' is created by inner join of 3 tables 'employee_details', 'employee_work_profile' and 'ethnicity'. 
 # The first query is a demo of finding out the number of BAME colleagues in Australia. There are 70.
@@ -46,14 +55,6 @@ SELECT EWP.employee_id, EWP.first_name, EWP.last_name, EWP.country_code, EWP.dep
 FROM employee_work_profile EWP RIGHT OUTER JOIN grade_salary GS
 ON EWP.grade = GS.grade
 where EWP.country_code = 'GB' and EWP.department = 'Warehouse & Delivery';
-
-# Find out the insights that are relevant to the Warehouse & Delivery department based on keywords
-# This requires an inner join of tables ‘department_keywords’ and ‘insights’
-# The query returns 3 insights to the Warehouse & Delivery manager to read
-SELECT DP.department, DP.keywords, I.insight_id, I.insight_title, I.insights_summary
-FROM department_keywords DP INNER JOIN insights I
-ON DP.keywords = I.keyword
-WHERE DP.department = 'Warehouse & Delivery';
 
 # Find out the average cost to the business when a Delivery Assistant / Warehouse Assistant needs to go on shield because of COVID-19
 # First create a view ‘vw_average_salary_uk_warehouse’, then obtain the salary information of all Delivery Assistants & Warehouse Assistants by a right outer join of tables 'employee_work_profile' and 'grade_salary'. At the end, calculate the average of the salary
