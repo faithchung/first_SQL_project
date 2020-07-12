@@ -1,0 +1,90 @@
+# Create a view vw_question by inner join of 3 tables 'insights', 'employee_work_profile', 'questions'
+CREATE VIEW vw_question AS (
+	SELECT EWP.department, I.insight_id, I.insight_title, I.insights_summary, Q.question, ER.response FROM
+    employee_responses ER
+	INNER JOIN 
+    insights I
+	ON
+    I.insight_id=ER.insight_id
+    INNER JOIN 
+    employee_work_profile EWP
+    ON
+    ER.employee_id = EWP.employee_id
+	INNER JOIN
+    questions Q
+	ON 
+    ER.question_id=Q.question_id
+);
+SELECT * FROM vw_question;
+WHERE department = 'Warehouse & Delivery';
+
+# Find out the insights that are relevant to the Warehouse & Delivery department based on keywords
+# This requires an inner join of tables ‘department_keywords’ and ‘insights’
+# The query returns 3 insights to the Warehouse & Delivery manager to read
+SELECT DP.department, DP.keywords, I.insight_id, I.insight_title, I.insights_summary
+FROM department_keywords DP INNER JOIN insights I
+ON DP.keywords = I.keyword
+WHERE DP.department = 'Warehouse & Delivery';
+
+
+# Find out he ethnicity distribution of my colleagues and where they operate.
+# To do so, the view 'vw_ethnicity' is created by inner join of 3 tables 'employee_details', 'employee_work_profile' and 'ethnicity'. 
+# The first query is a demo of finding out the number of BAME colleagues in Australia. There are 70.
+# The second query provides the count of BAME colleagues in the Warehouse & Delivery department in the UK. The result is 43.
+# The third query provides email addresses of all BAME colleagues for some targetted communications.
+
+CREATE VIEW vw_ethnicity AS (
+SELECT EWP.department, EN.ethnicity, EWP.country_code, ED.id, EWP.email
+From employee_work_profile EWP
+
+INNER JOIN
+employee_details ED
+ON
+ED.id = EWP.employee_id
+
+INNER JOIN
+ethnicity EN
+ON
+EN.ethnicity_code = ED.ethnicity_code
+);
+
+SELECT count(id) FROM vw_ethnicity
+WHERE (ethnicity = 'Black / African / Caribbean / Black British' and country_code ='AU') 
+OR (ethnicity = 'Asian / Asian British' and country_code ='AU') 
+OR (ethnicity = 'Asian / Asian British' and country_code ='AU') 
+OR (ethnicity = 'Mixed / Multiple ethnic groups' and country_code ='AU') 
+
+SELECT count(email) FROM vw_ethnicity
+WHERE (ethnicity = 'Black / African / Caribbean / Black British' and country_code ='GB' and department = 'Warehouse & Delivery') 
+OR (ethnicity = 'Asian / Asian British' and country_code ='GB' and department = 'Warehouse & Delivery') 
+OR (ethnicity = 'Asian / Asian British' and country_code ='GB' and department = 'Warehouse & Delivery') 
+OR (ethnicity = 'Mixed / Multiple ethnic groups' and country_code ='GB' and department = 'Warehouse & Delivery') 
+;
+
+SELECT email FROM vw_ethnicity
+WHERE (ethnicity = 'Black / African / Caribbean / Black British' and country_code ='GB' and department = 'Warehouse & Delivery') 
+OR (ethnicity = 'Asian / Asian British' and country_code ='GB' and department = 'Warehouse & Delivery') 
+OR (ethnicity = 'Asian / Asian British' and country_code ='GB' and department = 'Warehouse & Delivery') 
+OR (ethnicity = 'Mixed / Multiple ethnic groups' and country_code ='GB' and department = 'Warehouse & Delivery') 
+;
+
+# Find out the salary of Warehouse & Delivery colleagues based in the UK
+# This requires a right outer join of tables 'employee_work_profile' and 'grade_salary', filtered by department (Warehouse & Delivery) and work location (UK)
+# This query returns details of 59 UK colleagues working in the Warehouse & Delivery department
+SELECT EWP.employee_id, EWP.first_name, EWP.last_name, EWP.country_code, EWP.department, EWP.role, EWP.grade, GS.salary_uk
+FROM employee_work_profile EWP RIGHT OUTER JOIN grade_salary GS
+ON EWP.grade = GS.grade
+where EWP.country_code = 'GB' and EWP.department = 'Warehouse & Delivery';
+
+# Find out the average cost to the business when a Delivery Assistant / Warehouse Assistant needs to go on shield because of COVID-19
+# First create a view ‘vw_average_salary_uk_warehouse’, then obtain the salary information of all Delivery Assistants & Warehouse Assistants by a right outer join of tables 'employee_work_profile' and 'grade_salary'. At the end, calculate the average of the salary
+# The query returns an average of £31584
+
+CREATE VIEW vw_average_salary_uk_warehouse AS
+SELECT EWP.employee_id, EWP.first_name, EWP.last_name, EWP.country_code, EWP.role, EWP.grade, GS.salary_uk
+FROM employee_work_profile EWP RIGHT OUTER JOIN grade_salary GS
+ON EWP.grade = GS.grade
+WHERE (EWP.country_code = 'GB' and EWP.department = 'Warehouse & Delivery' and EWP.role = ‘Delivery Assistant’) OR (EWP.country_code = 'GB' and EWP.department = 'Warehouse & Delivery' and EWP.role = ‘Warehouse Assistant’);
+
+SELECT AVG(salary_uk)
+From vw_average_salary_uk_warehouse
