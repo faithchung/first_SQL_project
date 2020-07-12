@@ -1,3 +1,44 @@
+# Find out he ethnicity distribution of my colleagues and where they operate.
+# To do so, the view 'vw_ethnicity' is created by inner join of 3 tables 'employee_details', 'employee_work_profile' and 'ethnicity'. 
+# The first query is a demo of finding out the number of BAME colleagues in Australia. There are 70.
+# The second query provides the count of BAME colleagues in the Warehouse & Delivery department in the UK. The result is 43.
+# The third query provides email addresses of all BAME colleagues for some targetted communications.
+
+CREATE VIEW vw_ethnicity AS (
+SELECT EWP.department, EN.ethnicity, EWP.country_code, ED.id, EWP.email
+From employee_work_profile EWP
+
+INNER JOIN
+employee_details ED
+ON
+ED.id = EWP.employee_id
+
+INNER JOIN
+ethnicity EN
+ON
+EN.ethnicity_code = ED.ethnicity_code
+);
+
+SELECT count(id) FROM vw_ethnicity
+WHERE (ethnicity = 'Black / African / Caribbean / Black British' and country_code ='AU') 
+OR (ethnicity = 'Asian / Asian British' and country_code ='AU') 
+OR (ethnicity = 'Asian / Asian British' and country_code ='AU') 
+OR (ethnicity = 'Mixed / Multiple ethnic groups' and country_code ='AU') 
+
+SELECT count(email) FROM vw_ethnicity
+WHERE (ethnicity = 'Black / African / Caribbean / Black British' and country_code ='GB' and department = 'Warehouse & Delivery') 
+OR (ethnicity = 'Asian / Asian British' and country_code ='GB' and department = 'Warehouse & Delivery') 
+OR (ethnicity = 'Asian / Asian British' and country_code ='GB' and department = 'Warehouse & Delivery') 
+OR (ethnicity = 'Mixed / Multiple ethnic groups' and country_code ='GB' and department = 'Warehouse & Delivery') 
+;
+
+SELECT email FROM vw_ethnicity
+WHERE (ethnicity = 'Black / African / Caribbean / Black British' and country_code ='GB' and department = 'Warehouse & Delivery') 
+OR (ethnicity = 'Asian / Asian British' and country_code ='GB' and department = 'Warehouse & Delivery') 
+OR (ethnicity = 'Asian / Asian British' and country_code ='GB' and department = 'Warehouse & Delivery') 
+OR (ethnicity = 'Mixed / Multiple ethnic groups' and country_code ='GB' and department = 'Warehouse & Delivery') 
+;
+
 # Find out the salary of Warehouse & Delivery colleagues based in the UK
 # This requires a right outer join of tables 'employee_work_profile' and 'grade_salary', filtered by department (Warehouse & Delivery) and work location (UK)
 # This query returns details of 59 UK colleagues working in the Warehouse & Delivery department
