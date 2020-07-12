@@ -1,3 +1,23 @@
+# Create a view vw_question by inner join of 3 tables 'insights', 'employee_work_profile', 'questions'
+CREATE VIEW vw_question AS (
+	SELECT EWP.department, I.insight_id, I.insight_title, I.insights_summary, Q.question, ER.response FROM
+    employee_responses ER
+	INNER JOIN 
+    insights I
+	ON
+    I.insight_id=ER.insight_id
+    INNER JOIN 
+    employee_work_profile EWP
+    ON
+    ER.employee_id = EWP.employee_id
+	INNER JOIN
+    questions Q
+	ON 
+    ER.question_id=Q.question_id
+);
+SELECT * FROM vw_question;
+WHERE department = 'Warehouse & Delivery';
+
 # Find out the insights that are relevant to the Warehouse & Delivery department based on keywords
 # This requires an inner join of tables ‘department_keywords’ and ‘insights’
 # The query returns 3 insights to the Warehouse & Delivery manager to read
