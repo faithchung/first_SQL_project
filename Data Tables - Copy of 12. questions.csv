@@ -1,0 +1,7 @@
+question_id,question,
+('q1','Would this affect the stability of our supply chain?'), 
+('q2','Would this affect the price of products'), 
+('q3','Would this affect the well-being of staff?'), 
+('q4','Would this affect our logistics in the stores?'), 
+('q5','Would this affect our logistics of the warehouse?'), 
+('q6','Would this affect our delivery services?'), 
