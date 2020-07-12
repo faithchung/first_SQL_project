@@ -1593,47 +1593,109 @@ ALTER TABLE `employee_work_profile` ADD FOREIGN KEY (`employee_id`) REFERENCES `
 ALTER TABLE `employee_work_profile` ADD FOREIGN KEY (`grade`) REFERENCES `grade_salary` (`grade`);
 ALTER TABLE `employee_responses` ADD FOREIGN KEY (`employee_id`) REFERENCES `employee_details` (`id`);
 
-#Employee salary, join by grade for GB employee
-SELECT EWP.employee_id, EWP.first_name, EWP.last_name, EWP.country_code, EWP.grade, GS.salary_uk
+#Query 1#
+# Find out the salary of Warehouse & Delivery colleagues based in the UK
+# This requires a right outer join of tables 'employee_work_profile' and 'grade_salary', filtered by department (Warehouse & Delivery) and work location (UK)
+# This query returns details of 59 UK colleagues working in the Warehouse & Delivery department
+SELECT EWP.employee_id, EWP.first_name, EWP.last_name, EWP.country_code, EWP.department, EWP.role, EWP.grade, GS.salary_uk
 FROM employee_work_profile EWP RIGHT OUTER JOIN grade_salary GS
 ON EWP.grade = GS.grade
-HAVING EWP.country_code = 'GB';
+where EWP.country_code = 'GB' and EWP.department = 'Warehouse & Delivery';
 
-#Employee salary, join by grade for AU employee
-SELECT EWP.employee_id, EWP.first_name, EWP.last_name, EWP.country_code, EWP.grade, GS.salary_au
+#Query 2#
+# Find out the average cost to the business when a Delivery Assistant / Warehouse Assistant needs to go on shield because of COVID-19
+# First create a view 'vw_average_salary_uk_warehouse', then obtain the salary information of all Delivery Assistants & Warehouse Assistants by a right outer join of tables 'employee_work_profile' and 'grade_salary'. At the end, calculate the average of the salary
+# The query returns an average of £31584
+CREATE VIEW vw_average_salary_uk_warehouse AS
+SELECT EWP.employee_id, EWP.first_name, EWP.last_name, EWP.country_code, EWP.role, EWP.grade, GS.salary_uk
 FROM employee_work_profile EWP RIGHT OUTER JOIN grade_salary GS
 ON EWP.grade = GS.grade
-HAVING EWP.country_code = 'AU';
+WHERE (EWP.country_code = 'GB' and EWP.department = 'Warehouse & Delivery' and EWP.role = 'Delivery Assistant') OR (EWP.country_code = 'GB' and EWP.department = 'Warehouse & Delivery' and EWP.role = 'Warehouse Assistant');
 
-#articles that matches employee, join by keyword
-SELECT DP.department, DP.keywords, I.insight_id, I.insight_title
+SELECT FORMAT(AVG(salary_uk), 2)
+FROM vw_average_salary_uk_warehouse;
+
+#Query 3#
+# Find out he ethnicity distribution of my colleagues and where they operate.
+# To do so, the view 'vw_ethnicity' is created by inner join of 3 tables 'employee_details', 'employee_work_profile' and 'ethnicity'. 
+# The first query is a demo of finding out the number of BAME colleagues in Australia. There are 70.
+# The second query provides the count of BAME colleagues in the Warehouse & Delivery department in the UK. The result is 43.
+# The third query provides email addresses of all BAME colleagues for some targetted communications.
+CREATE VIEW vw_ethnicity AS (
+SELECT EWP.department, EN.ethnicity, EWP.country_code, ED.id, EWP.email
+From employee_work_profile EWP
+INNER JOIN
+employee_details ED
+ON
+ED.id = EWP.employee_id
+INNER JOIN
+ethnicity EN
+ON
+EN.ethnicity_code = ED.ethnicity_code
+);
+
+SELECT count(id) FROM vw_ethnicity
+WHERE (ethnicity = 'Black / African / Caribbean / Black British' and country_code ='AU') 
+OR (ethnicity = 'Asian / Asian British' and country_code ='AU') 
+OR (ethnicity = 'Asian / Asian British' and country_code ='AU') 
+OR (ethnicity = 'Mixed / Multiple ethnic groups' and country_code ='AU')
+;
+
+SELECT count(email) FROM vw_ethnicity
+WHERE (ethnicity = 'Black / African / Caribbean / Black British' and country_code ='GB' and department = 'Warehouse & Delivery') 
+OR (ethnicity = 'Asian / Asian British' and country_code ='GB' and department = 'Warehouse & Delivery') 
+OR (ethnicity = 'Asian / Asian British' and country_code ='GB' and department = 'Warehouse & Delivery') 
+OR (ethnicity = 'Mixed / Multiple ethnic groups' and country_code ='GB' and department = 'Warehouse & Delivery') 
+;
+
+SELECT email FROM vw_ethnicity
+WHERE (ethnicity = 'Black / African / Caribbean / Black British' and country_code ='GB' and department = 'Warehouse & Delivery') 
+OR (ethnicity = 'Asian / Asian British' and country_code ='GB' and department = 'Warehouse & Delivery') 
+OR (ethnicity = 'Asian / Asian British' and country_code ='GB' and department = 'Warehouse & Delivery') 
+OR (ethnicity = 'Mixed / Multiple ethnic groups' and country_code ='GB' and department = 'Warehouse & Delivery') 
+;
+
+#Query 4#
+# Find out the insights that are relevant to the Warehouse & Delivery department based on keywords
+# This requires an inner join of tables 'department_keywords' and 'insights'
+# The query returns 3 insights to the Warehouse & Delivery manager to read
+SELECT DP.department, DP.keywords, I.insight_id, I.insight_title, I.insights_summary
 FROM department_keywords DP INNER JOIN insights I
-ON DP.keywords = I.keyword;
+ON DP.keywords = I.keyword
+WHERE DP.department = 'Warehouse & Delivery';
 
-#number of M and F employees in GB office
-SELECT gender, count(gender)
-FROM employee_work_profile
-GROUP BY gender, country_code
-HAVING country_code = 'GB';
-
-#User defined stored procedure to display salary cost for all GB employees
-DELIMITER //
-CREATE PROCEDURE annualsalarycostGB ()
-BEGIN
-	SELECT EWP.employee_id, EWP.country_code, EWP.grade, GS.salary_uk
-	FROM employee_work_profile EWP RIGHT OUTER JOIN grade_salary GS
-	ON EWP.grade = GS.grade
-	HAVING country_code = 'GB';
+###################################################
+# Create view on question_id
+CREATE VIEW vw_question AS (
+	SELECT EWP.department, I.insight_id, Q.question, ER.response FROM
+    employee_responses ER
+		
+	INNER JOIN 
+    insights I
+	ON
+    I.insight_id=ER.insight_id
     
-END//
-DELIMITER ;
+    INNER JOIN 
+    employee_work_profile EWP
+    ON
+    ER.employee_id = EWP.employee_id
 
-CALL annualsalarycostGB();
+	INNER JOIN
+    questions Q
+	ON 
+    ER.question_id=Q.question_id
 
-#deleting an entry and undo
-START TRANSACTION;
-DELETE FROM employee_details WHERE id='FG00002';
-ROLLBACK;
+);
+
+SELECT* FROM vw_question;
+
+
+SELECT 
+	COUNT(IF(response ='yes', 1, NULL)) 'Yes',
+	COUNT(IF(response = 'no', 1, NULL)) 'No',
+	COUNT(IF(response = 'neutral', 1, NULL)) 'Neutral'
+FROM vw_question;
+###########################################################
 
 #set trigger, give warning when trying to delete id in employee_details
 DELIMITER //
@@ -1652,6 +1714,50 @@ DELETE FROM employee_details WHERE id='FG00003';
 SHOW TRIGGERS;
 DROP TRIGGER prevent_delete;
 
+#User defined stored procedure to display salary cost for all GB employees
+DELIMITER //
+CREATE PROCEDURE annualsalarycostGB ()
+BEGIN
+	SELECT EWP.employee_id, EWP.country_code, EWP.grade, GS.salary_uk
+	FROM employee_work_profile EWP RIGHT OUTER JOIN grade_salary GS
+	ON EWP.grade = GS.grade
+	HAVING country_code = 'GB';
+    
+END//
+DELIMITER ;
+
+CALL annualsalarycostGB();
+
+
+
+
+
+
+#Employee salary in GB office, join by grade for GB employee
+SELECT EWP.employee_id, EWP.first_name, EWP.last_name, EWP.country_code, EWP.grade, GS.salary_uk
+FROM employee_work_profile EWP RIGHT OUTER JOIN grade_salary GS
+ON EWP.grade = GS.grade
+HAVING EWP.country_code = 'GB';
+
+#Employee salary, join by grade for AU office
+SELECT EWP.employee_id, EWP.first_name, EWP.last_name, EWP.country_code, EWP.grade, GS.salary_au
+FROM employee_work_profile EWP RIGHT OUTER JOIN grade_salary GS
+ON EWP.grade = GS.grade
+HAVING EWP.country_code = 'AU';
+
+#count of M and F employees in GB office
+SELECT gender, count(gender)
+FROM employee_work_profile
+GROUP BY gender, country_code
+HAVING country_code = 'GB';
+
+
+#deleting an entry and undo
+START TRANSACTION;
+DELETE FROM employee_details WHERE id='FG00002';
+ROLLBACK;
+
+
 #create view for dashboard table on number of employee per geo home location
 CREATE VIEW vw_no_of_employee_geo AS
 SELECT home_address_country, count(home_address_country)
@@ -1660,8 +1766,13 @@ GROUP BY home_address_country;
 
 SELECT* FROM vw_no_of_employee_geo;
 
-#create view of 3 tables with inner join by keywords
-CREATE VIEW V AS (
+#articles that matches employee interest, join by keyword
+SELECT DP.department, DP.keywords, I.insight_id, I.insight_title
+FROM department_keywords DP INNER JOIN insights I
+ON DP.keywords = I.keyword;
+
+#insight articles that will be assigned to employee depending on their keyword interest
+CREATE VIEW vw_articles_assigned AS (
   SELECT EWP.employee_id, DK.department, I.keyword, I.insight_id FROM
     employee_work_profile EWP
   INNER JOIN 
@@ -1674,6 +1785,6 @@ CREATE VIEW V AS (
     DK.keywords=I.keyword
 );
 
-SELECT* FROM V;
+SELECT* FROM vw_articles_assigned;
 
 
