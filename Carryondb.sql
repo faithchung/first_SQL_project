@@ -1593,7 +1593,7 @@ ALTER TABLE `employee_work_profile` ADD FOREIGN KEY (`employee_id`) REFERENCES `
 ALTER TABLE `employee_work_profile` ADD FOREIGN KEY (`grade`) REFERENCES `grade_salary` (`grade`);
 ALTER TABLE `employee_responses` ADD FOREIGN KEY (`employee_id`) REFERENCES `employee_details` (`id`);
 
-#Query 1#
+
 # Find out the salary of Warehouse & Delivery colleagues based in the UK
 # This requires a right outer join of tables 'employee_work_profile' and 'grade_salary', filtered by department (Warehouse & Delivery) and work location (UK)
 # This query returns details of 59 UK colleagues working in the Warehouse & Delivery department
@@ -1602,7 +1602,7 @@ FROM employee_work_profile EWP RIGHT OUTER JOIN grade_salary GS
 ON EWP.grade = GS.grade
 where EWP.country_code = 'GB' and EWP.department = 'Warehouse & Delivery';
 
-#Query 2#
+
 # Find out the average cost to the business when a Delivery Assistant / Warehouse Assistant needs to go on shield because of COVID-19
 # First create a view 'vw_average_salary_uk_warehouse', then obtain the salary information of all Delivery Assistants & Warehouse Assistants by a right outer join of tables 'employee_work_profile' and 'grade_salary'. At the end, calculate the average of the salary
 # The query returns an average of £31584
@@ -1615,7 +1615,7 @@ WHERE (EWP.country_code = 'GB' and EWP.department = 'Warehouse & Delivery' and E
 SELECT FORMAT(AVG(salary_uk), 2)
 FROM vw_average_salary_uk_warehouse;
 
-#Query 3#
+
 # Find out he ethnicity distribution of my colleagues and where they operate.
 # To do so, the view 'vw_ethnicity' is created by inner join of 3 tables 'employee_details', 'employee_work_profile' and 'ethnicity'. 
 # The first query is a demo of finding out the number of BAME colleagues in Australia. There are 70.
@@ -1655,7 +1655,7 @@ OR (ethnicity = 'Asian / Asian British' and country_code ='GB' and department = 
 OR (ethnicity = 'Mixed / Multiple ethnic groups' and country_code ='GB' and department = 'Warehouse & Delivery') 
 ;
 
-#Query 4#
+
 # Find out the insights that are relevant to the Warehouse & Delivery department based on keywords
 # This requires an inner join of tables 'department_keywords' and 'insights'
 # The query returns 3 insights to the Warehouse & Delivery manager to read
@@ -1665,36 +1665,47 @@ ON DP.keywords = I.keyword
 WHERE DP.department = 'Warehouse & Delivery';
 
 ###################################################
-# Create view on question_id
-CREATE VIEW vw_question AS (
-	SELECT EWP.department, I.insight_id, Q.question, ER.response FROM
-    employee_responses ER
+# count of yes, no, neutral response on a particular question
+DELIMITER //
+CREATE FUNCTION GetInsightResponse(department)
+RETURNS VARCHAR(20)
+DETERMINISTIC
+BEGIN
+	CREATE VIEW vw_question AS (
+		SELECT EWP.department, I.insight_id, Q.question, ER.response FROM
+		employee_responses ER
+			
+		INNER JOIN 
+		insights I
+		ON
+		I.insight_id=ER.insight_id
 		
-	INNER JOIN 
-    insights I
-	ON
-    I.insight_id=ER.insight_id
-    
-    INNER JOIN 
-    employee_work_profile EWP
-    ON
-    ER.employee_id = EWP.employee_id
+		INNER JOIN 
+		employee_work_profile EWP
+		ON
+		ER.employee_id = EWP.employee_id
 
-	INNER JOIN
-    questions Q
-	ON 
-    ER.question_id=Q.question_id
+		INNER JOIN
+		questions Q
+		ON 
+		ER.question_id=Q.question_id
+	);
 
-);
+	SELECT 
+		insight_id,
+		question,
+		COUNT(IF(response ='yes', 1, NULL)) 'Yes',
+		COUNT(IF(response = 'no', 1, NULL)) 'No',
+		COUNT(IF(response = 'neutral', 1, NULL)) 'Neutral'
+	FROM vw_question
+	GROUP BY insight_id, question;
+	
+	RETURN (GetInsightResponse);
+END//
+DELIMITER;
 
-SELECT* FROM vw_question;
+CALL GetInsightResponse('Warehouse & Delivery');
 
-
-SELECT 
-	COUNT(IF(response ='yes', 1, NULL)) 'Yes',
-	COUNT(IF(response = 'no', 1, NULL)) 'No',
-	COUNT(IF(response = 'neutral', 1, NULL)) 'Neutral'
-FROM vw_question;
 ###########################################################
 
 #set trigger, give warning when trying to delete id in employee_details
@@ -1727,8 +1738,6 @@ END//
 DELIMITER ;
 
 CALL annualsalarycostGB();
-
-
 
 
 
